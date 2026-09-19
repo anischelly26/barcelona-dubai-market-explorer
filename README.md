@@ -4,7 +4,7 @@
 
 A full-stack property intelligence platform that normalizes Barcelona and Dubai listings into one geospatial data model, exposes comparative analytics through FastAPI, and presents the results in an interactive Next.js dashboard.
 
-**[Live dashboard](https://barcelona-dubai-market-explorer.rhythmx.chatgpt.site)** · **[Watch the 12-second demo](docs/demo.mp4)** · **[API contract](docs/architecture.md#api-surface)**
+**[Live dashboard](https://barcelona-dubai-market-explorer.rhythmx.chatgpt.site)** · **[Watch the 10-second demo](docs/demo.mp4)** · **[API contract](docs/architecture.md#api-surface)**
 
 ![Barcelona and Dubai Market Explorer dashboard](docs/demo-frames/01-overview.jpg)
 

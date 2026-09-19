@@ -1,7 +1,24 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Activity, AreaChart, ArrowUpRight, Building2, Code2, Database, Filter, MapPin, RefreshCw, Server, ShieldCheck } from "lucide-react";
+import {
+  Activity,
+  ArrowUpRight,
+  BarChart3,
+  Building2,
+  CircleDollarSign,
+  Code2,
+  Database,
+  Layers3,
+  Map as MapIcon,
+  MapPin,
+  RefreshCw,
+  Server,
+  ShieldCheck,
+  SlidersHorizontal,
+  Sparkles,
+  TrendingUp,
+} from "lucide-react";
 import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 import { InteractiveMarketMap } from "@/components/interactive-market-map";
@@ -20,57 +37,142 @@ const observedDate = new Intl.DateTimeFormat("en-US", { timeZone: "UTC", year: "
 const trendMonth = new Intl.DateTimeFormat("en-US", { timeZone: "UTC", month: "short" });
 const trendMonthLong = new Intl.DateTimeFormat("en-US", { timeZone: "UTC", month: "long", year: "numeric" });
 
+type Tone = "aqua" | "amber" | "violet" | "neutral";
+
+function formatLocalPrice(item: PropertyListing) {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: item.currency,
+    maximumFractionDigits: 0,
+  }).format(item.price_local);
+}
+
+function MetricCard({ icon: Icon, label, value, detail, tone = "neutral" }: {
+  icon: typeof TrendingUp;
+  label: string;
+  value: string;
+  detail: string;
+  tone?: Tone;
+}) {
+  return (
+    <article className={`metric-card metric-${tone}`}>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="eyebrow">{label}</p>
+          <p className="mt-3 text-2xl font-semibold tracking-tight text-white">{value}</p>
+        </div>
+        <span className="metric-icon"><Icon className="size-4" /></span>
+      </div>
+      <p className="mt-3 text-sm leading-5 text-zinc-400">{detail}</p>
+    </article>
+  );
+}
+
+function CityScoreCard({ city, median, averageYield, count, maxMedian }: {
+  city: City;
+  median: number;
+  averageYield: number;
+  count: number;
+  maxMedian: number;
+}) {
+  const width = median && maxMedian ? Math.max(12, (median / maxMedian) * 100) : 0;
+  return (
+    <article className={`city-score ${city === "Barcelona" ? "city-score-bcn" : "city-score-dubai"}`}>
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-2.5">
+          <span className="city-dot" />
+          <div>
+            <h4 className="font-semibold text-white">{city}</h4>
+            <p className="text-xs text-zinc-500">{city === "Barcelona" ? "Spain · EUR" : "UAE · normalized EUR"}</p>
+          </div>
+        </div>
+        <span className="font-mono text-xs text-zinc-400">{count} listings</span>
+      </div>
+      <div className="mt-5 flex items-end justify-between gap-4">
+        <div>
+          <p className="text-xs text-zinc-500">Median asking price</p>
+          <p className="mt-1 text-xl font-semibold text-white">{median ? `${euro.format(median)} / m²` : "—"}</p>
+        </div>
+        <div className="text-right">
+          <p className="text-xs text-zinc-500">Average yield</p>
+          <p className="mt-1 font-mono text-base font-semibold text-zinc-200">{averageYield ? `${averageYield.toFixed(1)}%` : "—"}</p>
+        </div>
+      </div>
+      <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-black/30">
+        <div className="h-full rounded-full transition-[width] duration-500" style={{ width: `${width}%` }} />
+      </div>
+    </article>
+  );
+}
+
 function CityMap({ city, listings, selectedId, onSelect }: {
   city: City;
   listings: PropertyListing[];
   selectedId: string;
   onSelect: (property: PropertyListing) => void;
 }) {
-  const accent = city === "Barcelona" ? "#47e7d4" : "#ffb454";
   return (
-    <article className="map-card overflow-hidden">
-      <div className="flex items-start justify-between gap-4 px-5 pt-5">
+    <article className={`map-card overflow-hidden ${city === "Barcelona" ? "map-card-bcn" : "map-card-dubai"}`}>
+      <div className="flex items-start justify-between gap-4 px-5 pt-5 sm:px-6 sm:pt-6">
         <div>
-          <p className="eyebrow">{city === "Barcelona" ? "Spain · EUR" : "UAE · AED normalized to EUR"}</p>
-          <h3 className="mt-1 text-lg font-semibold text-white">{city}</h3>
+          <p className="eyebrow">{city === "Barcelona" ? "Mediterranean market" : "Gulf market"}</p>
+          <h3 className="mt-1 text-xl font-semibold text-white">{city}</h3>
         </div>
-        <Badge variant="outline" className="border-white/10 bg-white/5 text-zinc-300">{listings.length} signals</Badge>
+        <Badge variant="outline" className="border-white/10 bg-black/15 text-zinc-300">{listings.length} signals</Badge>
       </div>
-      <div className="relative mx-3 mt-4 h-72 overflow-hidden rounded-xl border border-white/8 bg-[#0b1318]">
+      <div className="map-frame relative mx-3 mt-4 h-[19rem] overflow-hidden rounded-2xl border border-white/10 bg-[#081116] sm:mx-4 lg:h-[22rem]">
         {listings.length ? (
           <InteractiveMarketMap city={city} listings={listings} selectedId={selectedId} onSelect={onSelect} />
         ) : (
-          <div className="absolute inset-0 grid place-items-center text-sm text-zinc-500">No listings match this filter</div>
+          <div className="absolute inset-0 grid place-items-center px-8 text-center text-sm text-zinc-400">No listings match this filter. Increase the budget or reset the property type.</div>
         )}
       </div>
-      <div className="flex items-center justify-between px-5 py-4 text-xs text-zinc-500">
-        <span>OpenStreetMap · click a marker to inspect</span>
-        <span className="font-mono" style={{ color: accent }}>● GEOSPATIAL</span>
+      <div className="flex items-center justify-between gap-4 px-5 py-4 text-xs text-zinc-500 sm:px-6">
+        <span>Tap a marker to inspect it</span>
+        <span className="font-mono uppercase tracking-wide">OpenStreetMap</span>
       </div>
     </article>
   );
 }
 
-function MetricCard({ label, value, detail, tone = "neutral" }: {
-  label: string;
-  value: string;
-  detail: string;
-  tone?: "aqua" | "amber" | "neutral";
-}) {
+function PropertySpotlight({ property }: { property: PropertyListing }) {
+  const facts = [
+    ["Local price", formatLocalPrice(property)],
+    ["Normalized", euro.format(property.price_eur)],
+    ["Price / m²", euro.format(property.price_per_sqm_eur)],
+    ["Floor area", `${property.area_sqm} m²`],
+    ["Gross yield", `${property.gross_yield_pct.toFixed(1)}%`],
+    ["Bedrooms", String(property.bedrooms)],
+  ];
+
   return (
-    <article className="metric-card">
-      <div className={`metric-mark ${tone}`} />
-      <p className="eyebrow">{label}</p>
-      <p className="mt-3 text-2xl font-semibold tracking-tight text-white">{value}</p>
-      <p className="mt-2 text-xs text-zinc-500">{detail}</p>
+    <article className="panel overflow-hidden">
+      <div className={`spotlight-top ${property.city === "Barcelona" ? "spotlight-bcn" : "spotlight-dubai"}`}>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="eyebrow text-white/65">Selected property</p>
+            <h3 className="mt-2 text-2xl font-semibold text-white">{property.neighborhood}</h3>
+            <p className="mt-2 flex items-center gap-1.5 text-sm text-white/75"><MapPin className="size-4" /> {property.city}</p>
+          </div>
+          <Badge className="border border-white/10 bg-black/20 text-white">{property.property_type}</Badge>
+        </div>
+        <p className="mt-7 text-sm text-white/65">Normalized asking price</p>
+        <p className="mt-1 text-3xl font-semibold tracking-tight text-white">{euro.format(property.price_eur)}</p>
+      </div>
+      <dl className="grid grid-cols-2 gap-px bg-white/8">
+        {facts.map(([label, value]) => (
+          <div key={label} className="bg-[#0b151a] p-4 sm:p-5">
+            <dt className="text-xs uppercase tracking-[0.12em] text-zinc-500">{label}</dt>
+            <dd className="mt-2 text-sm font-medium text-zinc-100">{value}</dd>
+          </div>
+        ))}
+      </dl>
+      <div className="flex flex-wrap items-center justify-between gap-2 px-5 py-4 text-xs leading-5 text-zinc-500">
+        <span>Source: {property.source_name}</span>
+        <span>Observed {observedDate.format(new Date(property.observed_at))}</span>
+      </div>
     </article>
   );
-}
-
-function formatLocalPrice(item: PropertyListing) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency", currency: item.currency, maximumFractionDigits: 0,
-  }).format(item.price_local);
 }
 
 export function MarketExplorer() {
@@ -107,87 +209,131 @@ export function MarketExplorer() {
   const bcnMetrics = marketMetrics(bcn);
   const dubaiMetrics = marketMetrics(dubai);
   const allMetrics = marketMetrics(filtered);
+  const activeSelected = filtered.find((property) => property.id === selected.id) ?? filtered[0] ?? selected;
+  const maxMedian = Math.max(bcnMetrics.medianPricePerSqm, dubaiMetrics.medianPricePerSqm);
+  const priceAdvantage = bcnMetrics.medianPricePerSqm && dubaiMetrics.medianPricePerSqm
+    ? Math.round((1 - dubaiMetrics.medianPricePerSqm / bcnMetrics.medianPricePerSqm) * 100)
+    : 0;
+  const yieldLeader = bcnMetrics.averageYield >= dubaiMetrics.averageYield ? "Barcelona" : "Dubai";
+  const yieldGap = Math.abs(bcnMetrics.averageYield - dubaiMetrics.averageYield);
+  const resetFilters = () => {
+    setType("All");
+    setMaxBudget([1000]);
+  };
 
   return (
-    <main className="min-h-screen bg-[#071014] text-zinc-100">
-      <header className="border-b border-white/8 bg-[#071014]/95">
-        <div className="mx-auto flex max-w-[1500px] items-center justify-between gap-5 px-5 py-4 lg:px-8">
-          <div className="flex items-center gap-3">
-            <div className="grid size-10 place-items-center rounded-lg border border-[#47e7d4]/30 bg-[#47e7d4]/10 text-[#47e7d4]"><AreaChart className="size-5" /></div>
-            <div><h1 className="text-sm font-semibold tracking-wide text-white sm:text-base">Market Explorer</h1><p className="text-xs text-zinc-500">Barcelona ↔ Dubai</p></div>
-          </div>
+    <main className="dashboard-shell min-h-screen pb-24 text-zinc-100 md:pb-0">
+      <header className="sticky top-0 z-[1000] border-b border-white/8 bg-[#071014]/85 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-[1500px] items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
+          <a href="#overview" className="flex items-center gap-3" aria-label="Market Explorer home">
+            <span className="brand-mark"><BarChart3 className="size-5" /></span>
+            <span><strong className="block text-sm font-semibold tracking-wide text-white sm:text-base">Market Explorer</strong><span className="block text-xs text-zinc-500">Barcelona ↔ Dubai</span></span>
+          </a>
+          <nav className="hidden items-center gap-1 lg:flex" aria-label="Primary navigation">
+            {[['Overview', '#overview'], ['Maps', '#maps'], ['Analytics', '#analytics'], ['ROI', '#roi']].map(([label, href]) => (
+              <a key={href} href={href} className="rounded-lg px-3 py-2 text-sm text-zinc-400 transition hover:bg-white/5 hover:text-white">{label}</a>
+            ))}
+          </nav>
           <div className="flex items-center gap-2">
-            <Badge variant="outline" className={dataMode === "database" ? "border-emerald-300/20 bg-emerald-300/8 text-emerald-200" : "border-amber-300/20 bg-amber-300/8 text-amber-200"}>
-              <Activity className="mr-1 size-3" /> {dataMode === "database" ? "PostgreSQL live" : dataMode === "fallback" ? "API fallback" : "Demo mode"}
-            </Badge>
-            <Button variant="outline" size="sm" className="hidden border-white/10 bg-white/5 text-zinc-200 hover:bg-white/10 hover:text-white sm:inline-flex" asChild><a href="#architecture"><Code2 className="size-4" /> Architecture</a></Button>
+            <span className={`status-badge ${dataMode === "database" ? "status-live" : "status-demo"}`}>
+              <span className="status-dot" />
+              <span className="hidden sm:inline">{dataMode === "database" ? "PostgreSQL live" : dataMode === "fallback" ? "API fallback" : "Public demo data"}</span>
+              <span className="sm:hidden">{dataMode === "database" ? "Live" : "Demo"}</span>
+            </span>
+            <a className="header-icon-button" href="https://github.com/anischelly26/barcelona-dubai-market-explorer" target="_blank" rel="noreferrer" aria-label="View source code on GitHub"><Code2 className="size-4" /></a>
           </div>
         </div>
       </header>
 
-      <div className="mx-auto max-w-[1500px] px-5 py-7 lg:px-8">
-        <section className="mb-7 grid gap-5 xl:grid-cols-[1.1fr_0.9fr] xl:items-end">
-          <div>
-            <p className="eyebrow text-[#47e7d4]">Full-stack property intelligence</p>
-            <h2 className="mt-3 max-w-3xl text-3xl font-semibold tracking-[-0.035em] text-white sm:text-4xl">Compare two property markets on one normalized data layer.</h2>
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-400">A production-oriented pipeline for permitted ingestion, EUR/m² normalization, PostGIS exploration, comparative analytics and investment scenarios.</p>
-          </div>
-          <div className="filter-panel">
-            <div className="flex items-center justify-between gap-3 text-xs font-medium text-zinc-400">
-              <span className="flex items-center gap-2"><Filter className="size-3.5" /> ACTIVE FILTERS</span>
-              {refreshedAt && <span className="font-normal text-zinc-600">Refreshed {refreshedAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>}
+      <div className="mx-auto max-w-[1500px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+        <section id="overview" className="scroll-mt-24">
+          <div className="grid gap-6 xl:grid-cols-[0.82fr_1.18fr] xl:items-end">
+            <div>
+              <p className="eyebrow text-[#66f4e3]">Live comparative intelligence</p>
+              <h1 className="mt-3 max-w-2xl text-4xl font-semibold tracking-[-0.045em] text-white sm:text-5xl">One view. <span className="title-gradient">Two property markets.</span></h1>
+              <p className="mt-4 max-w-xl text-sm leading-6 text-zinc-400 sm:text-base">Filter, map and compare Barcelona and Dubai on one normalized data layer—then stress-test an investment before you shortlist it.</p>
             </div>
-            <div className="mt-4 grid gap-5 sm:grid-cols-[160px_1fr_auto] sm:items-end">
-              <label className="space-y-2 text-xs text-zinc-500">Property type
-                <Select value={type} onValueChange={setType}><SelectTrigger className="w-full border-white/10 bg-[#0b151a] text-zinc-200"><SelectValue /></SelectTrigger><SelectContent className="border-white/10 bg-[#0d181d] text-zinc-200"><SelectItem value="All">All properties</SelectItem><SelectItem value="Apartment">Apartments</SelectItem><SelectItem value="Villa">Villas</SelectItem></SelectContent></Select>
-              </label>
-              <label className="space-y-3 text-xs text-zinc-500"><span className="flex justify-between"><span>Maximum budget</span><strong className="font-mono font-medium text-zinc-200">€{compact.format(maxBudget[0] * 1000)}</strong></span><Slider min={200} max={2000} step={50} value={maxBudget} onValueChange={setMaxBudget} className="[&_[data-slot=slider-range]]:bg-[#47e7d4] [&_[data-slot=slider-thumb]]:border-[#47e7d4]" /></label>
-              <Button variant="outline" className="border-white/10 bg-white/5 text-zinc-300 hover:bg-white/10 hover:text-white" onClick={() => { setType("All"); setMaxBudget([1000]); }}><RefreshCw className="size-4" /> Reset</Button>
+
+            <div className="control-deck">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-2 text-sm font-medium text-zinc-200"><SlidersHorizontal className="size-4 text-[#49ead6]" /> Market controls</div>
+                <div className="flex items-center gap-2 text-xs text-zinc-500"><Activity className="size-3.5" /> Updated {refreshedAt ? refreshedAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "on load"}</div>
+              </div>
+              <div className="mt-5 grid gap-5 md:grid-cols-[180px_1fr_auto] md:items-end">
+                <label className="space-y-2 text-sm text-zinc-400">Property type
+                  <Select value={type} onValueChange={setType}><SelectTrigger className="w-full border-white/10 bg-[#071116] text-zinc-100"><SelectValue /></SelectTrigger><SelectContent className="z-[1200] border-white/10 bg-[#0d181d] text-zinc-100"><SelectItem value="All">All properties</SelectItem><SelectItem value="Apartment">Apartments</SelectItem><SelectItem value="Villa">Villas</SelectItem></SelectContent></Select>
+                </label>
+                <label className="space-y-3 text-sm text-zinc-400"><span className="flex justify-between gap-4"><span>Maximum budget</span><strong className="font-mono font-medium text-white">€{compact.format(maxBudget[0] * 1000)}</strong></span><Slider min={200} max={2000} step={50} value={maxBudget} onValueChange={setMaxBudget} aria-label="Maximum property budget" className="[&_[data-slot=slider-range]]:bg-[#49ead6] [&_[data-slot=slider-thumb]]:border-[#49ead6]" /></label>
+                <Button variant="outline" className="border-white/10 bg-white/5 text-zinc-200 hover:bg-white/10 hover:text-white" onClick={resetFilters}><RefreshCw className="size-4" /> Reset</Button>
+              </div>
             </div>
+          </div>
+
+          <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <MetricCard icon={Building2} label="Barcelona median" value={bcnMetrics.medianPricePerSqm ? `${euro.format(bcnMetrics.medianPricePerSqm)} / m²` : "—"} detail={`${bcn.length} filtered properties`} tone="aqua" />
+            <MetricCard icon={MapPin} label="Dubai median" value={dubaiMetrics.medianPricePerSqm ? `${euro.format(dubaiMetrics.medianPricePerSqm)} / m²` : "—"} detail="AED and sqft normalized" tone="amber" />
+            <MetricCard icon={TrendingUp} label="Average gross yield" value={allMetrics.averageYield ? `${allMetrics.averageYield.toFixed(1)}%` : "—"} detail="Annual rent ÷ purchase price" tone="violet" />
+            <MetricCard icon={Layers3} label="Listings analyzed" value={String(filtered.length)} detail={`${properties.length} records available`} />
+          </div>
+
+          <div className="mt-4 grid gap-4 xl:grid-cols-[1.45fr_0.75fr]">
+            <article className="comparison-panel">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div><p className="eyebrow">Market pulse</p><h2 className="mt-1 text-xl font-semibold text-white">Side-by-side snapshot</h2></div>
+                <span className="signal-pill"><Sparkles className="size-3.5" /> {priceAdvantage > 0 ? `Dubai is ${priceAdvantage}% lower per m²` : "Markets are closely priced"}</span>
+              </div>
+              <div className="mt-5 grid gap-3 md:grid-cols-2">
+                <CityScoreCard city="Barcelona" median={bcnMetrics.medianPricePerSqm} averageYield={bcnMetrics.averageYield} count={bcn.length} maxMedian={maxMedian} />
+                <CityScoreCard city="Dubai" median={dubaiMetrics.medianPricePerSqm} averageYield={dubaiMetrics.averageYield} count={dubai.length} maxMedian={maxMedian} />
+              </div>
+              <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/8 bg-black/15 px-4 py-3 text-sm text-zinc-400">
+                <span><strong className="text-zinc-200">Yield lead:</strong> {yieldLeader}</span>
+                <span className="font-mono text-xs text-zinc-500">+{yieldGap.toFixed(1)} percentage points</span>
+              </div>
+            </article>
+            <PropertySpotlight property={activeSelected} />
           </div>
         </section>
 
-        <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <MetricCard label="Barcelona median" value={bcnMetrics.medianPricePerSqm ? `${euro.format(bcnMetrics.medianPricePerSqm)} / m²` : "—"} detail={`${bcn.length} filtered properties`} tone="aqua" />
-          <MetricCard label="Dubai median" value={dubaiMetrics.medianPricePerSqm ? `${euro.format(dubaiMetrics.medianPricePerSqm)} / m²` : "—"} detail="AED and sqft normalized" tone="amber" />
-          <MetricCard label="Average gross yield" value={allMetrics.averageYield ? `${allMetrics.averageYield.toFixed(1)}%` : "—"} detail="Annual rent / purchase price" />
-          <MetricCard label="Listings analyzed" value={String(filtered.length)} detail={`${properties.length} records available`} />
+        <section id="maps" className="mt-10 scroll-mt-24">
+          <div className="section-heading"><div><p className="eyebrow">Geospatial explorer</p><h2>See where every signal lives</h2></div><p>Select any marker to update the property spotlight above.</p></div>
+          <div className="mt-4 grid gap-4 lg:grid-cols-2">
+            <CityMap city="Barcelona" listings={bcn} selectedId={activeSelected.id} onSelect={setSelected} />
+            <CityMap city="Dubai" listings={dubai} selectedId={activeSelected.id} onSelect={setSelected} />
+          </div>
         </section>
 
-        <section className="mt-4 grid gap-4 lg:grid-cols-2">
-          <CityMap city="Barcelona" listings={bcn} selectedId={selected.id} onSelect={setSelected} />
-          <CityMap city="Dubai" listings={dubai} selectedId={selected.id} onSelect={setSelected} />
-        </section>
-
-        <section className="mt-4 grid gap-4 xl:grid-cols-[1.55fr_0.75fr]">
-          <article className="panel p-5 sm:p-6">
+        <section id="analytics" className="mt-10 scroll-mt-24">
+          <div className="section-heading"><div><p className="eyebrow">Historical analytics</p><h2>Price movement, normalized</h2></div><p>Comparable EUR/m² trends remove currency and unit friction.</p></div>
+          <article className="panel mt-4 p-5 sm:p-6">
             <div className="flex flex-wrap items-start justify-between gap-4">
-              <div><p className="eyebrow">Normalized price movement</p><h3 className="mt-1 text-lg font-semibold text-white">Market price index · EUR / m²</h3></div>
-              <div className="flex rounded-lg border border-white/8 bg-[#081216] p-1">{[3, 6, 12].map((months) => <button key={months} type="button" onClick={() => setPeriod(months)} className={`rounded-md px-3 py-1.5 text-xs transition ${period === months ? "bg-white/10 text-white" : "text-zinc-500 hover:text-zinc-300"}`}>{months}M</button>)}</div>
+              <div><h3 className="text-lg font-semibold text-white">Market price index</h3><p className="mt-1 text-sm text-zinc-500">EUR per square metre</p></div>
+              <div className="period-switch" aria-label="Chart period">{[3, 6, 12].map((months) => <button key={months} type="button" onClick={() => setPeriod(months)} className={period === months ? "period-active" : ""}>{months}M</button>)}</div>
             </div>
-            <div className="mt-5 h-[310px] w-full"><ResponsiveContainer width="100%" height="100%"><LineChart data={visibleTrend} margin={{ top: 8, right: 8, left: -10, bottom: 0 }}><CartesianGrid stroke="#1b2b32" strokeDasharray="3 6" vertical={false} /><XAxis dataKey="month" tick={{ fill: "#718087", fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={(value) => trendMonth.format(new Date(String(value)))} /><YAxis tick={{ fill: "#718087", fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={(value) => `${Math.round(value / 1000)}k`} /><Tooltip contentStyle={{ background: "#0b151a", border: "1px solid #21323a", borderRadius: 8, fontSize: 12 }} formatter={(value) => [`€${Number(value).toLocaleString()}/m²`]} labelFormatter={(value) => trendMonthLong.format(new Date(String(value)))} /><Legend wrapperStyle={{ fontSize: 12, color: "#a1a1aa" }} /><Line type="monotone" dataKey="Barcelona" stroke="#47e7d4" strokeWidth={2.4} dot={false} connectNulls activeDot={{ r: 4 }} /><Line type="monotone" dataKey="Dubai" stroke="#ffb454" strokeWidth={2.4} dot={false} connectNulls activeDot={{ r: 4 }} /></LineChart></ResponsiveContainer></div>
-          </article>
-
-          <article className="panel overflow-hidden">
-            <div className="border-b border-white/8 p-5"><p className="eyebrow">Selected property signal</p><div className="mt-3 flex items-start justify-between gap-4"><div><h3 className="text-xl font-semibold text-white">{selected.neighborhood}</h3><p className="mt-1 flex items-center gap-1.5 text-sm text-zinc-400"><MapPin className="size-3.5" /> {selected.city}</p></div><Badge className={selected.city === "Barcelona" ? "bg-[#47e7d4]/12 text-[#72f4e4]" : "bg-[#ffb454]/12 text-[#ffc77d]"}>{selected.property_type}</Badge></div></div>
-            <dl className="grid grid-cols-2 gap-px bg-white/8">{[["Local price", formatLocalPrice(selected)], ["Normalized", euro.format(selected.price_eur)], ["Floor area", `${selected.area_sqm} m²`], ["Price / m²", euro.format(selected.price_per_sqm_eur)], ["Gross yield", `${selected.gross_yield_pct.toFixed(1)}%`], ["Observed", observedDate.format(new Date(selected.observed_at))]].map(([label, value]) => <div key={label} className="bg-[#0b151a] p-4"><dt className="text-[10px] uppercase tracking-[0.14em] text-zinc-600">{label}</dt><dd className="mt-1.5 text-sm font-medium text-zinc-200">{value}</dd></div>)}</dl>
-            <div className="p-5 text-xs leading-5 text-zinc-500">Source: {selected.source_name}. Demonstration values are not investment advice.</div>
+            <div className="mt-6 h-[18rem] w-full sm:h-[22rem]"><ResponsiveContainer width="100%" height="100%"><LineChart data={visibleTrend} margin={{ top: 8, right: 8, left: -10, bottom: 0 }}><CartesianGrid stroke="#1b2b32" strokeDasharray="3 6" vertical={false} /><XAxis dataKey="month" tick={{ fill: "#84939a", fontSize: 12 }} axisLine={false} tickLine={false} tickFormatter={(value) => trendMonth.format(new Date(String(value)))} /><YAxis tick={{ fill: "#84939a", fontSize: 12 }} axisLine={false} tickLine={false} tickFormatter={(value) => `${Math.round(value / 1000)}k`} /><Tooltip contentStyle={{ background: "#0b151a", border: "1px solid #263a43", borderRadius: 12, fontSize: 12 }} formatter={(value) => [`€${Number(value).toLocaleString()}/m²`]} labelFormatter={(value) => trendMonthLong.format(new Date(String(value)))} /><Legend wrapperStyle={{ fontSize: 12, color: "#a1a1aa" }} /><Line type="monotone" dataKey="Barcelona" stroke="#49ead6" strokeWidth={3} dot={false} connectNulls activeDot={{ r: 5 }} /><Line type="monotone" dataKey="Dubai" stroke="#ffb45f" strokeWidth={3} dot={false} connectNulls activeDot={{ r: 5 }} /></LineChart></ResponsiveContainer></div>
           </article>
         </section>
 
-        <section className="mt-4"><RoiCalculator /></section>
+        <section id="roi" className="mt-10 scroll-mt-24"><RoiCalculator /></section>
 
-        <section id="architecture" className="mt-4 grid gap-3 md:grid-cols-4">
-          {[
-            { icon: Database, title: "PostgreSQL + PostGIS", text: "Indexed listings, neighborhoods, FX rates and historical price snapshots." },
-            { icon: Server, title: "FastAPI service", text: "Typed filtering, geospatial search, market trends and ROI endpoints." },
-            { icon: Building2, title: "Automated ingestion", text: "Rate-limited adapters, validation, normalization, deduplication and daily scheduling." },
-            { icon: ShieldCheck, title: "Responsible sourcing", text: "Only permitted sources; no CAPTCHA bypassing or protected-content reproduction." },
-          ].map(({ icon: Icon, title, text }) => <article key={title} className="method-card"><Icon className="size-4 text-[#47e7d4]" /><h3 className="mt-4 text-sm font-semibold text-zinc-100">{title}</h3><p className="mt-2 text-xs leading-5 text-zinc-500">{text}</p></article>)}
+        <section id="architecture" className="mt-10 scroll-mt-24">
+          <div className="section-heading"><div><p className="eyebrow">Under the hood</p><h2>Built like a real data product</h2></div><p>From ingestion to investment insight, every layer is testable and replaceable.</p></div>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            {[
+              { icon: Database, title: "PostgreSQL + PostGIS", text: "Indexed listings, neighborhoods, FX rates and historical price snapshots." },
+              { icon: Server, title: "FastAPI service", text: "Typed filtering, geospatial search, market trends and ROI endpoints." },
+              { icon: Building2, title: "Automated ingestion", text: "Rate-limited adapters, validation, normalization, deduplication and daily scheduling." },
+              { icon: ShieldCheck, title: "Responsible sourcing", text: "Only permitted sources; no CAPTCHA bypassing or protected-content reproduction." },
+            ].map(({ icon: Icon, title, text }, index) => <article key={title} className="method-card"><span className="method-icon"><Icon className="size-4" /></span><span className="font-mono text-xs text-zinc-600">0{index + 1}</span><h3 className="mt-5 text-base font-semibold text-zinc-100">{title}</h3><p className="mt-2 text-sm leading-6 text-zinc-500">{text}</p></article>)}
+          </div>
         </section>
 
-        <footer className="mt-8 flex flex-col gap-3 border-t border-white/8 py-6 text-xs text-zinc-600 sm:flex-row sm:items-center sm:justify-between"><span>Built by Anis Chelli · Software Engineering portfolio project</span><a href="https://github.com/anischelly26/barcelona-dubai-market-explorer" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-zinc-400 transition hover:text-white">Source and documentation <ArrowUpRight className="size-3.5" /></a></footer>
+        <footer className="mt-10 flex flex-col gap-3 border-t border-white/8 py-7 text-xs text-zinc-600 sm:flex-row sm:items-center sm:justify-between"><span>Built by Anis Chelli · Software Engineering portfolio project</span><a href="https://github.com/anischelly26/barcelona-dubai-market-explorer" target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-zinc-400 transition hover:text-white">Source and documentation <ArrowUpRight className="size-3.5" /></a></footer>
       </div>
+
+      <nav className="mobile-nav md:hidden" aria-label="Mobile navigation">
+        {[{ label: "Overview", href: "#overview", icon: Layers3 }, { label: "Maps", href: "#maps", icon: MapIcon }, { label: "Trends", href: "#analytics", icon: BarChart3 }, { label: "ROI", href: "#roi", icon: CircleDollarSign }].map(({ label, href, icon: Icon }) => <a key={href} href={href}><Icon className="size-4" /><span>{label}</span></a>)}
+      </nav>
     </main>
   );
 }
