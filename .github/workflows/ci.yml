@@ -27,6 +27,8 @@ jobs:
   backend:
     name: API checks
     runs-on: ubuntu-latest
+    env:
+      PYTHONPATH: ${{ github.workspace }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -36,7 +38,7 @@ jobs:
           cache-dependency-path: backend/requirements.txt
       - run: python -m pip install --upgrade pip
       - run: pip install -r backend/requirements.txt
-      - run: pytest -q backend/tests
+      - run: pytest -q
 
   containers:
     name: Container builds
@@ -47,4 +49,3 @@ jobs:
       - uses: docker/setup-buildx-action@v3
       - run: docker build -t market-explorer-web .
       - run: docker build -f backend/Dockerfile -t market-explorer-api .
-
