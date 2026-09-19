@@ -24,6 +24,7 @@ This repository implements that pipeline end to end.
 | PostgreSQL/PostGIS | Spatial neighborhoods, property coordinates, historical snapshots, FX rates and GiST indexes |
 | FastAPI backend | Filtering, summaries, monthly trends, PostGIS radius search and ROI calculation |
 | React/Next.js interface | Responsive dashboard with typed API integration and explicit fallback state |
+| Property radar | Neighborhood search, city and budget filters, explainable opportunity scoring and strategy-based shortlisting |
 | Interactive maps | Two Leaflet/OpenStreetMap views with selectable property markers |
 | Price normalization | AED to EUR, sqft to sqm, EUR/m², rental yield and content fingerprints |
 | Automation and tests | Daily scheduler, Python and TypeScript unit tests, GitHub Actions and Docker builds |

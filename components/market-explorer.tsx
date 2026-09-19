@@ -10,9 +10,11 @@ import {
   Code2,
   Database,
   Layers3,
+  ListFilter,
   Map as MapIcon,
   MapPin,
   RefreshCw,
+  Search,
   Server,
   ShieldCheck,
   SlidersHorizontal,
@@ -22,12 +24,13 @@ import {
 import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 import { InteractiveMarketMap } from "@/components/interactive-market-map";
+import { PropertyRadar, type RadarSort } from "@/components/property-radar";
 import { RoiCalculator } from "@/components/roi-calculator";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
-import { marketMetrics } from "@/lib/analytics";
+import { marketMetrics, rankMarketOpportunities } from "@/lib/analytics";
 import { loadMarketData } from "@/lib/api";
 import { demoProperties, demoTrend, type City, type PropertyListing, type TrendPoint } from "@/lib/market-data";
 
@@ -181,8 +184,11 @@ export function MarketExplorer() {
   const [dataMode, setDataMode] = useState<"database" | "demo" | "fallback">("demo");
   const [refreshedAt, setRefreshedAt] = useState<Date | null>(null);
   const [type, setType] = useState("All");
+  const [city, setCity] = useState("Both");
+  const [query, setQuery] = useState("");
   const [maxBudget, setMaxBudget] = useState([1000]);
   const [period, setPeriod] = useState(12);
+  const [radarSort, setRadarSort] = useState<RadarSort>("score");
   const [selected, setSelected] = useState<PropertyListing>(demoProperties[0]);
 
   useEffect(() => {
@@ -198,11 +204,16 @@ export function MarketExplorer() {
   }, []);
 
   const filtered = useMemo(
-    () => properties.filter((property) =>
-      (type === "All" || property.property_type === type) && property.price_eur <= maxBudget[0] * 1000,
-    ),
-    [properties, type, maxBudget],
+    () => properties.filter((property) => {
+      const searchText = `${property.neighborhood} ${property.city} ${property.property_type} ${property.title}`.toLowerCase();
+      return (type === "All" || property.property_type === type)
+        && (city === "Both" || property.city === city)
+        && property.price_eur <= maxBudget[0] * 1000
+        && searchText.includes(query.trim().toLowerCase());
+    }),
+    [properties, type, city, maxBudget, query],
   );
+  const rankedOpportunities = useMemo(() => rankMarketOpportunities(filtered), [filtered]);
   const visibleTrend = trends.slice(-period);
   const bcn = filtered.filter((property) => property.city === "Barcelona");
   const dubai = filtered.filter((property) => property.city === "Dubai");
@@ -216,9 +227,15 @@ export function MarketExplorer() {
     : 0;
   const yieldLeader = bcnMetrics.averageYield >= dubaiMetrics.averageYield ? "Barcelona" : "Dubai";
   const yieldGap = Math.abs(bcnMetrics.averageYield - dubaiMetrics.averageYield);
+  const comparisonSignal = bcn.length && dubai.length
+    ? (priceAdvantage > 0 ? `Dubai is ${priceAdvantage}% lower per m²` : "Markets are closely priced")
+    : filtered.length ? `${filtered[0].city} view active` : "No signals match";
   const resetFilters = () => {
     setType("All");
+    setCity("Both");
+    setQuery("");
     setMaxBudget([1000]);
+    setRadarSort("score");
   };
 
   return (
@@ -230,7 +247,7 @@ export function MarketExplorer() {
             <span><strong className="block text-sm font-semibold tracking-wide text-white sm:text-base">Market Explorer</strong><span className="block text-xs text-zinc-500">Barcelona ↔ Dubai</span></span>
           </a>
           <nav className="hidden items-center gap-1 lg:flex" aria-label="Primary navigation">
-            {[['Overview', '#overview'], ['Maps', '#maps'], ['Analytics', '#analytics'], ['ROI', '#roi']].map(([label, href]) => (
+            {[['Overview', '#overview'], ['Radar', '#radar'], ['Maps', '#maps'], ['Analytics', '#analytics'], ['ROI', '#roi']].map(([label, href]) => (
               <a key={href} href={href} className="rounded-lg px-3 py-2 text-sm text-zinc-400 transition hover:bg-white/5 hover:text-white">{label}</a>
             ))}
           </nav>
@@ -259,7 +276,13 @@ export function MarketExplorer() {
                 <div className="flex items-center gap-2 text-sm font-medium text-zinc-200"><SlidersHorizontal className="size-4 text-[#49ead6]" /> Market controls</div>
                 <div className="flex items-center gap-2 text-xs text-zinc-500"><Activity className="size-3.5" /> Updated {refreshedAt ? refreshedAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "on load"}</div>
               </div>
-              <div className="mt-5 grid gap-5 md:grid-cols-[180px_1fr_auto] md:items-end">
+              <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-[1.2fr_0.8fr_0.9fr_1.4fr_auto] xl:items-end">
+                <label className="space-y-2 text-sm text-zinc-400">Search area
+                  <span className="search-field"><Search className="size-4" /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Eixample, Marina…" aria-label="Search neighborhood or property" /></span>
+                </label>
+                <label className="space-y-2 text-sm text-zinc-400">Market
+                  <Select value={city} onValueChange={setCity}><SelectTrigger className="w-full border-white/10 bg-[#071116] text-zinc-100"><SelectValue /></SelectTrigger><SelectContent className="z-[1200] border-white/10 bg-[#0d181d] text-zinc-100"><SelectItem value="Both">Both cities</SelectItem><SelectItem value="Barcelona">Barcelona</SelectItem><SelectItem value="Dubai">Dubai</SelectItem></SelectContent></Select>
+                </label>
                 <label className="space-y-2 text-sm text-zinc-400">Property type
                   <Select value={type} onValueChange={setType}><SelectTrigger className="w-full border-white/10 bg-[#071116] text-zinc-100"><SelectValue /></SelectTrigger><SelectContent className="z-[1200] border-white/10 bg-[#0d181d] text-zinc-100"><SelectItem value="All">All properties</SelectItem><SelectItem value="Apartment">Apartments</SelectItem><SelectItem value="Villa">Villas</SelectItem></SelectContent></Select>
                 </label>
@@ -280,20 +303,22 @@ export function MarketExplorer() {
             <article className="comparison-panel">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div><p className="eyebrow">Market pulse</p><h2 className="mt-1 text-xl font-semibold text-white">Side-by-side snapshot</h2></div>
-                <span className="signal-pill"><Sparkles className="size-3.5" /> {priceAdvantage > 0 ? `Dubai is ${priceAdvantage}% lower per m²` : "Markets are closely priced"}</span>
+                <span className="signal-pill"><Sparkles className="size-3.5" /> {comparisonSignal}</span>
               </div>
               <div className="mt-5 grid gap-3 md:grid-cols-2">
                 <CityScoreCard city="Barcelona" median={bcnMetrics.medianPricePerSqm} averageYield={bcnMetrics.averageYield} count={bcn.length} maxMedian={maxMedian} />
                 <CityScoreCard city="Dubai" median={dubaiMetrics.medianPricePerSqm} averageYield={dubaiMetrics.averageYield} count={dubai.length} maxMedian={maxMedian} />
               </div>
-              <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/8 bg-black/15 px-4 py-3 text-sm text-zinc-400">
+              {bcn.length && dubai.length ? <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/8 bg-black/15 px-4 py-3 text-sm text-zinc-400">
                 <span><strong className="text-zinc-200">Yield lead:</strong> {yieldLeader}</span>
                 <span className="font-mono text-xs text-zinc-500">+{yieldGap.toFixed(1)} percentage points</span>
-              </div>
+              </div> : <div className="mt-4 rounded-xl border border-white/8 bg-black/15 px-4 py-3 text-sm text-zinc-500">Choose both cities to restore the direct market comparison.</div>}
             </article>
-            <PropertySpotlight property={activeSelected} />
+            {filtered.length ? <PropertySpotlight property={activeSelected} /> : <article className="panel grid min-h-72 place-items-center p-8 text-center"><div><Search className="mx-auto size-6 text-zinc-600" /><h3 className="mt-4 text-lg font-semibold text-white">No property selected</h3><p className="mt-2 max-w-xs text-sm leading-6 text-zinc-500">Clear the search or increase your maximum budget to bring signals back into view.</p><Button variant="outline" className="mt-5 border-white/10 bg-white/5 text-zinc-200 hover:bg-white/10 hover:text-white" onClick={resetFilters}><RefreshCw className="size-4" /> Clear filters</Button></div></article>}
           </div>
         </section>
+
+        <PropertyRadar listings={rankedOpportunities} selectedId={activeSelected.id} sort={radarSort} onSortChange={setRadarSort} onSelect={setSelected} />
 
         <section id="maps" className="mt-10 scroll-mt-24">
           <div className="section-heading"><div><p className="eyebrow">Geospatial explorer</p><h2>See where every signal lives</h2></div><p>Select any marker to update the property spotlight above.</p></div>
@@ -332,7 +357,7 @@ export function MarketExplorer() {
       </div>
 
       <nav className="mobile-nav md:hidden" aria-label="Mobile navigation">
-        {[{ label: "Overview", href: "#overview", icon: Layers3 }, { label: "Maps", href: "#maps", icon: MapIcon }, { label: "Trends", href: "#analytics", icon: BarChart3 }, { label: "ROI", href: "#roi", icon: CircleDollarSign }].map(({ label, href, icon: Icon }) => <a key={href} href={href}><Icon className="size-4" /><span>{label}</span></a>)}
+        {[{ label: "Overview", href: "#overview", icon: Layers3 }, { label: "Radar", href: "#radar", icon: ListFilter }, { label: "Maps", href: "#maps", icon: MapIcon }, { label: "ROI", href: "#roi", icon: CircleDollarSign }].map(({ label, href, icon: Icon }) => <a key={href} href={href}><Icon className="size-4" /><span>{label}</span></a>)}
       </nav>
     </main>
   );
