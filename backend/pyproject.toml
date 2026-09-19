@@ -1,0 +1,15 @@
+[project]
+name = "market-explorer-api"
+version = "1.0.0"
+description = "FastAPI analytics and ingestion service for the Barcelona-Dubai Market Explorer"
+requires-python = ">=3.12"
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+

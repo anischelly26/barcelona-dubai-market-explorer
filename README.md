@@ -1,66 +1,120 @@
 # Barcelona & Dubai Market Explorer
 
-A portfolio-grade property intelligence MVP by **Anis Chelli**. It demonstrates how heterogeneous listings from Barcelona and Dubai can be normalized into one comparable data model, explored geographically, and analyzed through a responsive dashboard.
+[![CI](https://github.com/anischelly26/barcelona-dubai-market-explorer/actions/workflows/ci.yml/badge.svg)](https://github.com/anischelly26/barcelona-dubai-market-explorer/actions/workflows/ci.yml)
 
-**[Open the live MVP](https://barcelona-dubai-market-explorer.rhythmx.chatgpt.site)**
+A full-stack property intelligence platform that normalizes Barcelona and Dubai listings into one geospatial data model, exposes comparative analytics through FastAPI, and presents the results in an interactive Next.js dashboard.
 
-**Current status:** frontend MVP complete; backend and ingestion pipeline planned.
+**[Live dashboard](https://barcelona-dubai-market-explorer.rhythmx.chatgpt.site)** · **[Watch the 12-second demo](docs/demo.mp4)** · **[API contract](docs/architecture.md#api-surface)**
 
-> The current MVP uses synthetic, illustrative data. It does not scrape or reproduce protected listing content and must not be used for investment decisions.
+![Barcelona and Dubai Market Explorer dashboard](docs/demo-frames/01-overview.jpg)
 
-## What it demonstrates
+> Portfolio and engineering demonstration. The included records are synthetic or curated examples and are not investment advice.
 
-- Cross-market currency and unit normalization
-- Interactive filtering by property type and budget
-- Geospatial neighborhood signal exploration
-- Comparative price-per-square-metre trends
-- Derived metrics for median pricing and gross rental yield
-- A product interface ready to consume a real backend API
+## Why this project matters
 
-## Stack
+Property portals represent price, currency, floor area and location differently. Comparing markets requires more than a chart: the system must collect permitted data, validate it, normalize AED/EUR and sqft/sqm, preserve historical observations, support geographic queries, and make the resulting assumptions visible.
 
-- Next.js / React / TypeScript
-- Tailwind CSS and shadcn/ui
-- Recharts for comparative time-series visualization
-- SVG-based geospatial prototype
-- Target backend: FastAPI, PostgreSQL/PostGIS, Docker
+This repository implements that pipeline end to end.
+
+## Delivered capabilities
+
+| Capability | Implementation |
+| --- | --- |
+| Real-estate ingestion | Rate-limited BeautifulSoup/HTTPX adapter framework for explicitly permitted sources |
+| PostgreSQL/PostGIS | Spatial neighborhoods, property coordinates, historical snapshots, FX rates and GiST indexes |
+| FastAPI backend | Filtering, summaries, monthly trends, PostGIS radius search and ROI calculation |
+| React/Next.js interface | Responsive dashboard with typed API integration and explicit fallback state |
+| Interactive maps | Two Leaflet/OpenStreetMap views with selectable property markers |
+| Price normalization | AED to EUR, sqft to sqm, EUR/m², rental yield and content fingerprints |
+| Automation and tests | Daily scheduler, Python and TypeScript unit tests, GitHub Actions and Docker builds |
+| Deployment | Docker Compose for the complete stack plus a deployed frontend demo |
 
 ## Architecture
 
-```text
-Licensed APIs / open datasets
-            ↓
-Python ingestion and validation
-            ↓
-Normalization layer (currency, units, schema)
-            ↓
-PostgreSQL + PostGIS + price snapshots
-            ↓
-FastAPI analytics service
-            ↓
-Next.js comparison dashboard
+```mermaid
+flowchart LR
+  S[Permitted sources] --> I[Python ingestion]
+  I --> N[Validation + normalization]
+  N --> P[(PostgreSQL + PostGIS)]
+  P --> A[FastAPI]
+  A --> U[Next.js dashboard]
+  J[Daily scheduler] --> I
 ```
 
-The repository currently implements the frontend product slice and a typed synthetic dataset. The next milestone is to move the data contract behind FastAPI and add a reproducible ingestion job using legally permitted sources.
+See [architecture.md](docs/architecture.md) for the data model, endpoints and reliability decisions.
 
-## Run locally
+## Technology
+
+- **Frontend:** Next.js, React, TypeScript, Tailwind CSS, Leaflet, Recharts, Vitest
+- **Backend:** FastAPI, Pydantic, SQLAlchemy async, HTTPX, BeautifulSoup, APScheduler
+- **Data:** PostgreSQL 16, PostGIS, normalized price snapshots and spatial indexes
+- **Delivery:** Docker Compose, GitHub Actions, Cloudflare-compatible frontend runtime
+
+## Run the complete stack
+
+```bash
+cp .env.example .env
+docker compose up --build
+```
+
+Then open:
+
+- Dashboard: `http://localhost:3000`
+- API documentation: `http://localhost:8000/docs`
+- Health check: `http://localhost:8000/health`
+
+The database is initialized with a small, deterministic dataset. Configure `MARKET_INGESTION_SOURCE_URL` only for a source that explicitly permits automated collection.
+
+## Run without Docker
+
+Frontend:
 
 ```bash
 npm install
 npm run dev
 ```
 
-Then open `http://localhost:3000`.
+Backend in demo mode:
 
-## Roadmap
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -r backend/requirements.txt
+uvicorn backend.app.main:app --reload
+```
 
-1. Create the FastAPI service and OpenAPI contract.
-2. Add PostgreSQL/PostGIS tables for listings, price snapshots, neighborhoods, and FX rates.
-3. Build a compliant ingestion connector for one open Barcelona dataset and one licensed UAE source.
-4. Add validation, deduplication, historical snapshots, and automated tests.
-5. Containerize the frontend, API, worker, and database with Docker Compose.
-6. Add CI checks, observability, and a documented benchmark for API latency and data quality.
+Without `MARKET_DATABASE_URL`, FastAPI serves the same typed demo contract from memory. This makes the project easy to evaluate while keeping database mode production-oriented.
+
+## Verification
+
+```bash
+npm run lint
+npm run typecheck
+npm test
+npm run build
+pytest -q backend/tests
+```
+
+CI repeats these checks and builds both production containers on every pull request.
+
+## Example API calls
+
+```bash
+curl "http://localhost:8000/v1/properties?city=Dubai&max_price_eur=500000"
+
+curl "http://localhost:8000/v1/properties/nearby?latitude=41.39&longitude=2.17&radius_m=5000"
+
+curl -X POST "http://localhost:8000/v1/analytics/roi" \
+  -H "Content-Type: application/json" \
+  -d '{"purchase_price_eur":350000,"monthly_rent_eur":2100,"annual_costs_eur":3600,"vacancy_rate_pct":5,"acquisition_costs_pct":10}'
+```
 
 ## Data ethics
 
-Before connecting a source, verify its terms of service, robots policy, licensing, retention rules, and personal-data implications. Use official APIs or open datasets where possible. Anti-blocking techniques are intentionally not part of this MVP.
+This project does not bypass authentication, CAPTCHAs, robots controls or rate limits. Before adding any live source, verify its terms, license, retention requirements and personal-data implications. Prefer public datasets and official or licensed APIs.
+
+## Author
+
+**Anis Chelli** — final-year Software Engineering student focused on full-stack development, data engineering and applied AI.
+
+[GitHub profile](https://github.com/anischelly26)
