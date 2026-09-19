@@ -12,6 +12,10 @@
 
 # testing
 /coverage
+.pytest_cache/
+__pycache__/
+*.py[cod]
+.venv/
 
 # next.js
 /.next/
@@ -35,6 +39,7 @@ yarn-error.log*
 
 # typescript
 next-env.d.ts
+*.tsbuildinfo
 /dist/
 /.wrangler/
 /.sites-runtime/

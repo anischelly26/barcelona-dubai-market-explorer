@@ -1,0 +1,13 @@
+.git
+.github
+.next
+.wrangler
+dist
+node_modules
+coverage
+__pycache__
+.pytest_cache
+.venv
+.env*
+docs/*.mp4
+
